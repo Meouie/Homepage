@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dash Jumper</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      overflow: hidden;
+      background: black;
+    }
+
+    canvas {
+      display: block;
+      background-image: url('laka.png');
+      background-size: cover;
+      background-position: center;
+    }
+
+    #score {
+      position: absolute;
+      color: white;
+      font-size: 24px;
+      top: 10px;
+      left: 10px;
+      font-family: monospace;
+      z-index: 1001;
+    }
+
+    #backBtn {
+      position: fixed;
+      top: 15px;
+      right: 15px;
+      z-index: 1000;
+      padding: 10px 20px;
+      background-color: rgba(255, 255, 255, 0.2);
+      color: white;
+      border: 2px solid white;
+      border-radius: 5px;
+      font-size: 1rem;
+      cursor: pointer;
+      font-family: monospace;
+    }
+
+    #startScreen, #gameOverScreen, #leaderboardPopup {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-family: monospace;
+      z-index: 1002;
+    }
+
+    input, button {
+      padding: 10px;
+      margin: 10px;
+      font-size: 16px;
+      border: none;
+      border-radius: 5px;
+    }
+
+    #leaderboardPopup ul {
+      list-style: none;
+      padding: 0;
+    }
+  </style>
+</head>
+<body>
+  <div id="score">Score: 0</div>
+  <button id="backBtn" onclick="goBack()">⬅ Back</button>
+  <canvas id="gameCanvas"></canvas>
+
+  <div id="startScreen">
+    <h1>🐍 Dash Jumper</h1>
+    <input type="text" id="playerName" placeholder="Enter your name" />
+    <button onclick="startGame()">Start Game</button>
+  </div>
+
+  <div id="gameOverScreen" style="display:none">
+    <h2>Game Over!</h2>
+    <p id="finalScoreText"></p>
+    <button onclick="restartGame()">Restart</button>
+    <button onclick="showLeaderboard()">View Leaderboard</button>
+  </div>
+
+  <div id="leaderboardPopup" style="display:none">
+    <h2>🏆 Leaderboard</h2>
+    <ul id="leaderboardList"></ul>
+    <button onclick="closeLeaderboard()">Close</button>
+  </div>
+
+  <audio id="jumpSound" src="gulk.mp3" preload="auto"></audio>
+  <audio id="oofSound" src="oof.mp3" preload="auto"></audio>
+
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    const GRAVITY = 0.8;
+    const JUMP = -15;
+    const OBSTACLE_SPEED = 6;
+    const PLAYER_IMG = new Image();
+    PLAYER_IMG.src = "void.png";
+
+    const jumpSound = document.getElementById("jumpSound");
+    const oofSound = document.getElementById("oofSound");
+
+    const player = {
+      x: 100,
+      y: canvas.height - 160,
+      width: 100,
+      height: 140,
+      velocityY: 0,
+      onGround: true
+    };
+
+    let obstacles = [];
+    let score = 0;
+    let gameInterval;
+    let obstacleInterval;
+    let playerName = "";
+
+    function drawPlayer() {
+      ctx.drawImage(PLAYER_IMG, player.x, player.y, player.width, player.height);
+    }
+
+    function drawObstacles() {
+      ctx.fillStyle = "red";
+      for (let obs of obstacles) {
+        ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
+      }
+    }
+
+    function spawnObstacle() {
+      const height = 60 + Math.random() * 40;
+      obstacles.push({
+        x: canvas.width,
+        y: canvas.height - height,
+        width: 40,
+        height: height
+      });
+    }
+
+    function updatePlayer() {
+      player.velocityY += GRAVITY;
+      player.y += player.velocityY;
+
+      if (player.y + player.height >= canvas.height - 60) {
+        player.y = canvas.height - 60 - player.height;
+        player.velocityY = 0;
+        player.onGround = true;
+      } else {
+        player.onGround = false;
+      }
+    }
+
+    function updateObstacles() {
+      for (let i = 0; i < obstacles.length; i++) {
+        obstacles[i].x -= OBSTACLE_SPEED;
+        if (obstacles[i].x + obstacles[i].width < 0) {
+          obstacles.splice(i, 1);
+          score++;
+        }
+      }
+    }
+
+    function checkCollision() {
+      for (let obs of obstacles) {
+        if (
+          player.x < obs.x + obs.width &&
+          player.x + player.width > obs.x &&
+          player.y + player.height > obs.y
+        ) {
+          endGame();
+        }
+      }
+    }
+
+    function gameLoop() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      updatePlayer();
+      updateObstacles();
+      checkCollision();
+      drawPlayer();
+      drawObstacles();
+      document.getElementById("score").innerText = "Score: " + score;
+    }
+
+    document.addEventListener("keydown", (e) => {
+      if ((e.code === "Space" || e.code === "ArrowUp") && player.onGround) {
+        player.velocityY = JUMP;
+        jumpSound.currentTime = 0;
+        jumpSound.play().catch(() => {});
+      }
+    });
+
+    canvas.addEventListener("touchstart", () => {
+      if (player.onGround) {
+        player.velocityY = JUMP;
+        jumpSound.currentTime = 0;
+        jumpSound.play().catch(() => {});
+      }
+    });
+
+    function startGame() {
+      playerName = document.getElementById("playerName").value.trim() || "Anonymous";
+      document.getElementById("startScreen").style.display = "none";
+      score = 0;
+      obstacles = [];
+      player.y = canvas.height - 160;
+      player.velocityY = 0;
+      gameInterval = setInterval(gameLoop, 1000 / 60);
+      obstacleInterval = setInterval(spawnObstacle, 2000);
+    }
+
+    function endGame() {
+      clearInterval(gameInterval);
+      clearInterval(obstacleInterval);
+      oofSound.currentTime = 0;
+      oofSound.play().catch(() => {});
+      document.getElementById("finalScoreText").innerText = `${playerName}, your score was ${score}`;
+      document.getElementById("gameOverScreen").style.display = "flex";
+
+      let data = JSON.parse(localStorage.getItem("dashLeaderboard") || "[]");
+      const index = data.findIndex(entry => entry.name === playerName);
+
+      if (index === -1) {
+        data.push({ name: playerName, score });
+      } else if (score > data[index].score) {
+        data[index].score = score;
+      }
+
+      data.sort((a, b) => b.score - a.score);
+      data = data.slice(0, 10);
+      localStorage.setItem("dashLeaderboard", JSON.stringify(data));
+    }
+
+    function restartGame() {
+      document.getElementById("gameOverScreen").style.display = "none";
+      startGame();
+    }
+
+    function showLeaderboard() {
+      const list = document.getElementById("leaderboardList");
+      list.innerHTML = "";
+      let data = JSON.parse(localStorage.getItem("dashLeaderboard") || "[]");
+      data.forEach((entry, i) => {
+        const li = document.createElement("li");
+        li.innerText = `${i + 1}. ${entry.name} — ${entry.score}`;
+        list.appendChild(li);
+      });
+      document.getElementById("leaderboardPopup").style.display = "flex";
+    }
+
+    function closeLeaderboard() {
+      document.getElementById("leaderboardPopup").style.display = "none";
+    }
+
+    function goBack() {
+      window.history.back();
+    }
+  </script>
+</body>
+</html>

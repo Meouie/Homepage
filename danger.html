@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>D34TH7</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background: black;
+      overflow: hidden;
+      position: relative;
+      font-family: 'Courier New', monospace;
+    }
+
+    .eye {
+      position: absolute;
+      background: url('eye.gif') no-repeat center/contain;
+      opacity: 0.9;
+      pointer-events: none;
+    }
+
+    .flash-warning {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      background: red;
+      color: black;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 10vw;
+      font-weight: bold;
+      font-family: "Creepster", cursive, monospace;
+      text-shadow: 0 0 40px #300, 0 0 80px #900;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 2000;
+      transition: opacity 0.05s ease;
+    }
+    .flash-warning.active { opacity: 1; }
+
+    .password-box {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: transparent;
+      padding: 20px;
+      z-index: 1000;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    .password-box input {
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid crimson;
+      color: crimson;
+      font-size: 1.5rem;
+      text-align: center;
+      outline: none;
+      caret-color: red;
+      width: 220px;
+    }
+    .password-box button {
+      background: none;
+      border: none;
+      color: crimson;
+      cursor: pointer;
+      font-size: 1.5rem;
+    }
+
+    .music-controls {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1000;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      color: white;
+      font-size: 1rem;
+    }
+    .music-controls button {
+      background: rgba(0,0,0,0.5);
+      border: 1px solid crimson;
+      color: white;
+      padding: 5px 10px;
+      cursor: pointer;
+    }
+    .music-controls input[type="range"] {
+      width: 100px;
+    }
+
+    .back-btn {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      background: rgba(0,0,0,0.5);
+      color: white;
+      padding: 10px 18px;
+      border-radius: 12px;
+      text-decoration: none;
+      font-size: 1.2rem;
+      backdrop-filter: blur(5px);
+      z-index: 1000;
+    }
+    .back-btn:hover {
+      background: rgba(255,0,0,0.8);
+    }
+
+    @media (max-width: 768px) {
+      .flash-warning { font-size: 15vw; }
+      .back-btn { font-size: 1rem; padding: 8px 14px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="flash-warning" id="warningText">YOU ARE NOT SUPPOSED TO BE HERE</div>
+
+  <!-- Password -->
+  <div class="password-box">
+    <input type="password" id="secretInput" maxlength="20" autofocus />
+    <button id="toggleEye">👁️</button>
+  </div>
+
+  <!-- Music Controls -->
+  <div class="music-controls">
+    <button id="toggleMusic">Pause</button>
+    <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="0.5">
+  </div>
+
+  <a href="pratham.html" class="back-btn">BACK</a>
+
+  <audio id="demonAudio" src="dumbo.mp3" autoplay loop></audio>
+
+  <script>
+    const totalEyes = 80;
+    const placed = [];
+
+    function isOverlapping(x, y, size) {
+      return placed.some(pos => {
+        const dx = x - pos.x;
+        const dy = y - pos.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        return dist < (size + pos.size) / 2 + 15; // 15px buffer
+      });
+    }
+
+    for (let i = 0; i < totalEyes; i++) {
+      const eye = document.createElement('div');
+      eye.classList.add('eye');
+
+      const size = Math.floor(Math.random() * 80) + 40;
+      eye.style.width = `${size}px`;
+      eye.style.height = `${size}px`;
+
+      let x, y, attempts = 0;
+      do {
+        x = Math.random() * (window.innerWidth - size);
+        y = Math.random() * (window.innerHeight - size);
+        attempts++;
+        if (attempts > 500) break;
+      } while (isOverlapping(x, y, size));
+
+      eye.style.left = `${x}px`;
+      eye.style.top = `${y}px`;
+
+      placed.push({ x, y, size });
+      document.body.appendChild(eye);
+    }
+
+    // Red flash warning
+    const warning = document.getElementById('warningText');
+    function flash() {
+      warning.classList.add('active');
+      setTimeout(() => warning.classList.remove('active'), 150);
+      setTimeout(flash, Math.random() * 4000 + 2000);
+    }
+    setTimeout(flash, 3000);
+
+    // Password reveal
+    const secretInput = document.getElementById('secretInput');
+    const toggleEye = document.getElementById('toggleEye');
+    toggleEye.addEventListener('click', () => {
+      secretInput.type = secretInput.type === 'password' ? 'text' : 'password';
+    });
+    secretInput.addEventListener('input', () => {
+      if (secretInput.value === '06/09/2069') {
+        window.location.href = 'yourenotsupposetobehere.html';
+      }
+    });
+
+    // Music control
+    const demonAudio = document.getElementById('demonAudio');
+    const toggleMusic = document.getElementById('toggleMusic');
+    const volumeSlider = document.getElementById('volumeSlider');
+
+    toggleMusic.addEventListener('click', () => {
+      if (demonAudio.paused) {
+        demonAudio.play();
+        toggleMusic.textContent = 'Pause';
+      } else {
+        demonAudio.pause();
+        toggleMusic.textContent = 'Play';
+      }
+    });
+    volumeSlider.addEventListener('input', () => {
+      demonAudio.volume = volumeSlider.value;
+    });
+  </script>
+</body>
+</html>
