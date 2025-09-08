@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Try to Touch Grass</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background-color: black;
+      height: 100vh;
+    }
+    #grass {
+      position: absolute;
+      width: 100px;
+      height: 100px;
+      background: url('grass.png') no-repeat center center / cover;
+      cursor: pointer;
+    }
+    #backBtn {
+      position: fixed;
+      top: 15px;
+      right: 15px;
+      z-index: 1000;
+      padding: 10px 20px;
+      background-color: rgba(255, 255, 255, 0.2);
+      color: white;
+      border: 2px solid white;
+      border-radius: 5px;
+      font-size: 1rem;
+      cursor: pointer;
+      font-family: monospace;
+    }
+    #backBtn:hover {
+      background-color: rgba(255, 255, 255, 0.3);
+    }
+  </style>
+</head>
+<body>
+<div id="grass"></div>
+<button id="backBtn" onclick="goBack()">⬅ Back</button>
+<script>
+const grass = document.getElementById("grass");
+let speed = 4; // Increased base speed
+let avoidRadius = 250; // Increased detection range
+let posX = window.innerWidth / 2 - 50;
+let posY = window.innerHeight / 2 - 50;
+let dirX = Math.random() * 2 - 1;
+let dirY = Math.random() * 2 - 1;
+
+function goBack() {
+  window.history.back();
+}
+
+grass.style.left = `${posX}px`;
+grass.style.top = `${posY}px`;
+
+grass.addEventListener("click", () => {
+  alert("🌱 Great job! You finally touched grass!");
+});
+
+document.addEventListener("touchstart", (e) => {
+  const touch = e.touches[0];
+  const rect = grass.getBoundingClientRect();
+  if (
+    touch.clientX >= rect.left &&
+    touch.clientX <= rect.right &&
+    touch.clientY >= rect.top &&
+    touch.clientY <= rect.bottom
+  ) {
+    alert("🌱 Great job! You finally touched grass!");
+  }
+});
+
+function moveGrass(x, y) {
+  const grassCenterX = posX + 50;
+  const grassCenterY = posY + 50;
+
+  const dx = grassCenterX - x;
+  const dy = grassCenterY - y;
+  const distance = Math.sqrt(dx * dx + dy * dy);
+
+  if (distance < avoidRadius) {
+    const angle = Math.atan2(dy, dx);
+    dirX = Math.cos(angle);
+    dirY = Math.sin(angle);
+
+    speed += 0.05; // Accelerate faster when close
+    avoidRadius += 0.2;
+  }
+}
+
+function updateGrassPosition() {
+  posX += dirX * speed;
+  posY += dirY * speed;
+
+  // Wrap to opposite side
+  if (posX + 100 < 0) posX = window.innerWidth;
+  else if (posX > window.innerWidth) posX = -100;
+
+  if (posY + 100 < 0) posY = window.innerHeight;
+  else if (posY > window.innerHeight) posY = -100;
+
+  grass.style.left = `${posX}px`;
+  grass.style.top = `${posY}px`;
+
+  requestAnimationFrame(updateGrassPosition);
+}
+
+requestAnimationFrame(updateGrassPosition);
+
+document.addEventListener("mousemove", (e) => moveGrass(e.clientX, e.clientY));
+document.addEventListener("touchmove", (e) => {
+  if (e.touches.length > 0) {
+    moveGrass(e.touches[0].clientX, e.touches[0].clientY);
+  }
+});
+</script>
+</body>
+</html>
